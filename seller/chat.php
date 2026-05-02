@@ -5,71 +5,107 @@ requireRole("seller");
 require_once "../includes/db_connect.php";
 require_once "../includes/header.php";
 
-$seller = $_SESSION['user_id'];
-$buyer = intval($_GET['buyer'] ?? 0);
-$car = intval($_GET['car_id'] ?? 0);
+$seller = (int)$_SESSION['user_id'];
+$buyer  = (int)($_GET['buyer'] ?? 0);
+$car    = (int)($_GET['car_id'] ?? 0);
 
+/* VALIDATION */
+if(!$buyer || !$car){
+  echo "<div class='alert'>Invalid chat request</div>";
+  require_once "../includes/footer.php";
+  exit();
+}
+
+/* SEND MESSAGE */
 if($_SERVER['REQUEST_METHOD']=="POST"){
 
-$msg = mysqli_real_escape_string($conn,$_POST['message']);
+  $msg = trim($_POST['message'] ?? '');
 
-mysqli_query($conn,"
-INSERT INTO messages(car_id,sender_id,receiver_id,message)
-VALUES($car,$seller,$buyer,'$msg')
-");
+  if($msg !== ""){
+    $stmt = mysqli_prepare($conn,"
+      INSERT INTO messages (car_id,sender_id,receiver_id,message)
+      VALUES (?,?,?,?)
+    ");
+    mysqli_stmt_bind_param($stmt,"iiis",$car,$seller,$buyer,$msg);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+  }
 
+  exit();
 }
 ?>
 
-<h2>Chat with Buyer</h2>
+<h2>💬 Chat with Buyer</h2>
 
-<div class="card p" style="height:350px;overflow:auto">
+<div class="chat-container">
 
-<?php
+  <!-- CHAT BOX -->
+  <div id="chatBox" class="chat-box"></div>
 
-$res=mysqli_query($conn,"
-SELECT * FROM messages
-WHERE car_id=$car
-AND (
-(sender_id=$seller AND receiver_id=$buyer)
-OR
-(sender_id=$buyer AND receiver_id=$seller)
-)
-ORDER BY created_at ASC
-");
+  <!-- INPUT -->
+  <form onsubmit="sendMsg(event)" class="chat-input">
+    <input class="input" id="msgInput" name="message" placeholder="Type message..." required autocomplete="off">
+    <button class="btn primary">Send</button>
+  </form>
 
-while($m=mysqli_fetch_assoc($res)){
-
-if($m['sender_id']==$seller){
-
-echo "
-<div style='text-align:right;margin-bottom:8px'>
-<span class='btn primary'>".$m['message']."</span>
 </div>
-";
 
-}else{
+<script>
 
-echo "
-<div style='text-align:left;margin-bottom:8px'>
-<span class='btn'>".$m['message']."</span>
-</div>
-";
+/* ===================== */
+/* LOAD MESSAGES (UPDATED) */
+/* ===================== */
+function loadMessages(){
+  fetch("/carconnect/includes/fetch_messages.php?other=<?php echo $buyer; ?>&car_id=<?php echo $car; ?>")
+  .then(res => res.text())
+  .then(data => {
+    let box = document.getElementById("chatBox");
 
+    if(box.innerHTML !== data){
+      box.innerHTML = data;
+      box.scrollTop = box.scrollHeight;
+    }
+  });
 }
 
+/* ===================== */
+/* SEND MESSAGE */
+/* ===================== */
+function sendMsg(e){
+  e.preventDefault();
+
+  let input = document.getElementById("msgInput");
+  let msg = input.value.trim();
+
+  if(msg === "") return;
+
+  fetch("chat.php?buyer=<?php echo $buyer; ?>&car_id=<?php echo $car; ?>",{
+    method:"POST",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body:"message="+encodeURIComponent(msg)
+  }).then(()=>{
+    input.value="";
+    loadMessages();
+  });
 }
 
-?>
+/* ENTER KEY SEND */
+document.getElementById("msgInput").addEventListener("keydown",function(e){
+  if(e.key === "Enter"){
+    e.preventDefault();
+    sendMsg(e);
+  }
+});
 
-</div>
+/* AUTO REFRESH */
+setInterval(loadMessages, 2000);
 
-<form method="POST" style="margin-top:10px;display:flex;gap:8px">
+/* INITIAL LOAD */
+loadMessages();
 
-<input class="input" name="message" placeholder="Type message..." required>
+/* AUTO FOCUS */
+document.getElementById("msgInput").focus();
 
-<button class="btn primary">Send</button>
-
-</form>
+</script>
 
 <?php require_once "../includes/footer.php"; ?>

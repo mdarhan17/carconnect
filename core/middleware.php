@@ -1,25 +1,59 @@
 ﻿<?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
+/* ===================== */
+/* REQUIRE LOGIN */
+/* ===================== */
 function requireLogin() {
-    if (!isset($_SESSION['user_id'])) {
-        header("Location: /carconnect/index.php");
+    if (empty($_SESSION['user_id'])) {
+        header("Location: /carconnect/auth/login.php");
         exit();
     }
 }
 
+/* ===================== */
+/* REQUIRE ROLE */
+/* ===================== */
 function requireRole($role) {
     requireLogin();
-    if (!isset($_SESSION['role']) || $_SESSION['role'] !== $role) {
+
+    if (empty($_SESSION['role']) || $_SESSION['role'] !== $role) {
+
+        // 🔥 Optional debug (remove later)
+        // echo "Access Denied. Required role: $role";
+        // exit();
+
         header("Location: /carconnect/index.php");
         exit();
     }
 }
 
+/* ===================== */
+/* REDIRECT BY ROLE */
+/* ===================== */
 function redirectByRole($role) {
-    if ($role === 'admin') header("Location: /carconnect/admin/admin_dashboard.php");
-    if ($role === 'buyer') header("Location: /carconnect/buyer/home.php");
-    if ($role === 'seller') header("Location: /carconnect/seller/seller_dashboard.php");
+
+    switch($role){
+
+        case 'admin':
+            header("Location: /carconnect/admin/admin_dashboard.php");
+            break;
+
+        case 'buyer':
+            header("Location: /carconnect/buyer/home.php");
+            break;
+
+        case 'seller':
+            header("Location: /carconnect/seller/seller_dashboard.php");
+            break;
+
+        default:
+            header("Location: /carconnect/index.php");
+            break;
+    }
+
     exit();
 }
 ?>

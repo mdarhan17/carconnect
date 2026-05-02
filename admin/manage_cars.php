@@ -6,105 +6,210 @@ require_once __DIR__ . "/../includes/db_connect.php";
 require_once __DIR__ . "/../includes/functions.php";
 require_once __DIR__ . "/../includes/header.php";
 
-/* APPROVE */
+/* ===================== */
+/* HANDLE ACTIONS */
+/* ===================== */
 
-if(isset($_GET['approve'])){
-  $id = intval($_GET['approve']);
-  mysqli_query($conn,"UPDATE car_listings SET status='approved' WHERE id=$id");
-  echo '<div class="alert success">Car approved ✅</div>';
+if($_SERVER['REQUEST_METHOD']=="POST"){
+
+  $id = intval($_POST['id']);
+
+  if($_POST['action']=="approve"){
+    mysqli_query($conn,"UPDATE car_listings SET status='approved' WHERE id=$id");
+    header("Location: manage_cars.php?msg=approved");
+    exit();
+  }
+
+  if($_POST['action']=="reject"){
+    mysqli_query($conn,"UPDATE car_listings SET status='rejected' WHERE id=$id");
+    header("Location: manage_cars.php?msg=rejected");
+    exit();
+  }
+
+  if($_POST['action']=="delete"){
+    mysqli_query($conn,"DELETE FROM car_listings WHERE id=$id");
+    header("Location: manage_cars.php?msg=deleted");
+    exit();
+  }
 }
 
-/* SET PENDING */
+/* ===================== */
+/* MESSAGE */
+/* ===================== */
 
-if(isset($_GET['reject'])){
-  $id = intval($_GET['reject']);
-  mysqli_query($conn,"UPDATE car_listings SET status='pending' WHERE id=$id");
-  echo '<div class="alert">Car set to pending.</div>';
-}
-
-/* DELETE CAR */
-
-if(isset($_GET['delete'])){
-  $id = intval($_GET['delete']);
-
-  mysqli_query($conn,"DELETE FROM car_listings WHERE id=$id");
-
-  echo '<div class="alert success">Car deleted successfully 🗑️</div>';
+if(isset($_GET['msg'])){
+  if($_GET['msg']=="approved") echo "<div class='alert success'>Car Approved ✅</div>";
+  if($_GET['msg']=="rejected") echo "<div class='alert'>Car Rejected ❌</div>";
+  if($_GET['msg']=="deleted") echo "<div class='alert success'>Car Deleted 🗑️</div>";
 }
 ?>
 
-<h1>Manage Car Listings</h1>
+<h1>🚗 Manage Car Listings</h1>
 
-<table class="table">
+<!-- ===================== -->
+<!-- PENDING CARS -->
+<!-- ===================== -->
 
-<tr>
-<th>Car</th>
-<th>Seller</th>
-<th>Price</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
+<h2>⏳ Pending Approval</h2>
+
+<div class="grid">
 
 <?php
 
-$sql="
-SELECT 
-c.id,
-c.make,
-c.model,
-c.price,
-c.status,
-u.name seller
+$res = mysqli_query($conn,"
+SELECT c.*, s.name seller
 FROM car_listings c
-JOIN users u ON u.id=c.seller_id
-ORDER BY c.created_at DESC
-";
+JOIN sellers s ON s.id=c.seller_id
+WHERE c.status='pending'
+ORDER BY c.id DESC
+");
 
-$res=mysqli_query($conn,$sql);
+if($res && mysqli_num_rows($res)>0){
 
 while($c=mysqli_fetch_assoc($res)){
 
+$img = $c['image_path'] ?: "/carconnect/assets/images/default_car.jpg";
+
 echo "
 
-<tr>
+<div class='card'>
 
-<td>".e($c['make'])." ".e($c['model'])."</td>
+<img src='".e($img)."' style='height:200px;object-fit:cover'>
 
-<td>".e($c['seller'])."</td>
+<div class='p'>
 
-<td>₹".number_format((float)$c['price'])."</td>
+<div style='font-weight:800;font-size:18px'>
+".e($c['make'])." ".e($c['model'])."
+</div>
 
-<td>".e($c['status'])."</td>
+<div class='muted'>
+Year: ".e($c['year'])."
+</div>
 
-<td>
+<div style='margin-top:6px;color:#00d2ff;font-weight:700'>
+₹".number_format((float)$c['price'])."
+</div>
 
-<a class='btn primary'
-href='/carconnect/admin/manage_cars.php?approve=".intval($c['id'])."'>
-Approve
-</a>
+<div class='muted' style='margin-top:6px'>
+Seller: ".e($c['seller'])."
+</div>
 
-<a class='btn'
-href='/carconnect/admin/manage_cars.php?reject=".intval($c['id'])."'>
-Pending
-</a>
+<div class='muted' style='margin-top:6px;font-size:13px'>
+Mileage: ".e($c['mileage'])." km • 
+Fuel: ".e($c['fuel_type'])." • 
+Transmission: ".e($c['transmission'])."
+</div>
 
-<a class='btn'
-style='background:#ff4d4d;color:white'
-onclick=\"return confirm('Delete this car?')\"
-href='/carconnect/admin/manage_cars.php?delete=".intval($c['id'])."'>
-Delete
-</a>
+<div class='muted' style='margin-top:6px;font-size:13px'>
+".e(substr($c['description'],0,100))."...
+</div>
 
-</td>
+<div style='margin-top:12px;display:flex;gap:8px;flex-wrap:wrap'>
 
-</tr>
+<form method='POST'>
+<input type='hidden' name='id' value='{$c['id']}'>
+<button name='action' value='approve' class='btn primary'>Approve</button>
+</form>
+
+<form method='POST'>
+<input type='hidden' name='id' value='{$c['id']}'>
+<button name='action' value='reject' class='btn'>Reject</button>
+</form>
+
+<form method='POST' onsubmit=\"return confirm('Delete this car?')\">
+<input type='hidden' name='id' value='{$c['id']}'>
+<button name='action' value='delete' class='btn' style='background:#ef4444;color:white'>Delete</button>
+</form>
+
+</div>
+
+</div>
+
+</div>
 
 ";
 
 }
 
+}else{
+echo "<p class='muted'>No pending cars</p>";
+}
+
 ?>
 
-</table>
+</div>
+
+<!-- ===================== -->
+<!-- APPROVED CARS -->
+<!-- ===================== -->
+
+<h2 style="margin-top:40px">✅ Approved Cars</h2>
+
+<div class="grid">
+
+<?php
+
+$res = mysqli_query($conn,"
+SELECT c.*, s.name seller
+FROM car_listings c
+JOIN sellers s ON s.id=c.seller_id
+WHERE c.status='approved'
+ORDER BY c.id DESC
+");
+
+if($res && mysqli_num_rows($res)>0){
+
+while($c=mysqli_fetch_assoc($res)){
+
+$img = $c['image_path'] ?: "/carconnect/assets/images/default_car.jpg";
+
+echo "
+
+<div class='card'>
+
+<img src='".e($img)."' style='height:200px;object-fit:cover'>
+
+<div class='p'>
+
+<div style='font-weight:800;font-size:18px'>
+".e($c['make'])." ".e($c['model'])."
+</div>
+
+<div class='muted'>
+Year: ".e($c['year'])."
+</div>
+
+<div style='margin-top:6px;color:#00d2ff;font-weight:700'>
+₹".number_format((float)$c['price'])."
+</div>
+
+<div class='muted' style='margin-top:6px'>
+Seller: ".e($c['seller'])."
+</div>
+
+<div style='margin-top:12px'>
+
+<form method='POST' onsubmit=\"return confirm('Delete this car?')\">
+<input type='hidden' name='id' value='{$c['id']}'>
+<button name='action' value='delete' class='btn' style='background:#ef4444;color:white'>Delete</button>
+</form>
+
+</div>
+
+</div>
+
+</div>
+
+";
+
+}
+
+}else{
+echo "<p class='muted'>No approved cars</p>";
+}
+
+?>
+
+</div>
 
 <?php require_once __DIR__ . "/../includes/footer.php"; ?>

@@ -1,31 +1,100 @@
 ﻿<?php
-require_once __DIR__ . "/../core/middleware.php";
+require_once "../core/middleware.php";
 requireRole("buyer");
-require_once __DIR__ . "/../includes/db_connect.php";
-require_once __DIR__ . "/../includes/functions.php";
-require_once __DIR__ . "/../includes/header.php";
 
-$buyerId = intval($_SESSION['user_id']);
-?>
-<h1>Your Orders</h1>
-<table class="table">
-  <tr><th>Order ID</th><th>Car</th><th>Total</th><th>Status</th><th>Date</th></tr>
-<?php
-$stmt = mysqli_prepare($conn, "SELECT o.id, o.total_price, o.order_status, o.order_date, c.make, c.model
-  FROM orders o JOIN car_listings c ON c.id=o.car_id
-  WHERE o.buyer_id=? ORDER BY o.order_date DESC");
+require_once "../includes/db_connect.php";
+require_once "../includes/functions.php";
+require_once "../includes/header.php";
+
+$buyerId = (int)$_SESSION['user_id'];
+
+$stmt = mysqli_prepare($conn,"
+SELECT 
+o.id,
+o.total_price,
+o.order_status,
+c.make,
+c.model,
+s.name seller,
+p.payment_status
+FROM orders o
+JOIN car_listings c ON c.id=o.car_id
+JOIN sellers s ON s.id=o.seller_id
+LEFT JOIN payments p ON p.order_id=o.id
+WHERE o.buyer_id=?
+ORDER BY o.id DESC
+");
+
 mysqli_stmt_bind_param($stmt,"i",$buyerId);
 mysqli_stmt_execute($stmt);
 $res = mysqli_stmt_get_result($stmt);
-while($r=mysqli_fetch_assoc($res)){
-  echo "<tr>
-    <td>".intval($r['id'])."</td>
-    <td>".e($r['make'])." ".e($r['model'])."</td>
-    <td>₹".number_format((float)$r['total_price'])."</td>
-    <td>".e($r['order_status'])."</td>
-    <td>".e($r['order_date'])."</td>
-  </tr>";
-}
 ?>
+
+<h1>📦 My Orders</h1>
+
+<table class="table">
+<tr>
+<th>ID</th>
+<th>Car</th>
+<th>Seller</th>
+<th>Price</th>
+<th>Status</th>
+<th>Payment</th>
+<th>Date</th>
+</tr>
+
+<?php if(mysqli_num_rows($res)>0): ?>
+
+<?php while($r=mysqli_fetch_assoc($res)): ?>
+
+<?php
+$statusColor = "#999";
+if($r['order_status']=="completed") $statusColor="#16a34a";
+if($r['order_status']=="pending")   $statusColor="#f59e0b";
+if($r['order_status']=="cancelled") $statusColor="#ef4444";
+
+$payColor = "#999";
+if($r['payment_status']=="paid")    $payColor="#16a34a";
+if($r['payment_status']=="pending") $payColor="#f59e0b";
+if($r['payment_status']=="failed")  $payColor="#ef4444";
+?>
+
+<tr>
+
+<td>#<?php echo intval($r['id']); ?></td>
+
+<td><?php echo e($r['make']." ".$r['model']); ?></td>
+
+<td><?php echo e($r['seller']); ?></td>
+
+<td>₹<?php echo number_format((float)$r['total_price']); ?></td>
+
+<td>
+<span style="background:<?php echo $statusColor; ?>;color:#fff;padding:5px 12px;border-radius:20px;font-size:12px">
+<?php echo ucfirst($r['order_status']); ?>
+</span>
+</td>
+
+<td>
+<span style="color:<?php echo $payColor; ?>;font-weight:700">
+<?php echo ucfirst($r['payment_status'] ?? 'N/A'); ?>
+</span>
+</td>
+
+<td>#<?php echo intval($r['id']); ?></td>
+
+</tr>
+
+<?php endwhile; ?>
+
+<?php else: ?>
+
+<tr>
+<td colspan="7" style="text-align:center">No orders yet</td>
+</tr>
+
+<?php endif; ?>
+
 </table>
-<?php require_once __DIR__ . "/../includes/footer.php"; ?>
+
+<?php require_once "../includes/footer.php"; ?>
