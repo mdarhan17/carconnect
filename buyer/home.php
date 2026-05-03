@@ -31,7 +31,10 @@ mysqli_stmt_close($stmt2);
 
 <p class="muted">Welcome back! Manage your cars, wishlist and orders.</p>
 
+<!-- ===================== -->
 <!-- ACTION BUTTONS -->
+<!-- ===================== -->
+
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:25px">
 
 <a class="btn primary" href="car_listings.php">🚗 Browse Cars</a>
@@ -40,12 +43,17 @@ mysqli_stmt_close($stmt2);
 
 <a class="btn" href="order_history.php">📦 Orders</a>
 
-<!-- ✅ NEW BUTTON -->
 <a class="btn" href="messages.php">💬 Messages</a>
+
+<!-- ✅ NEW CONTACT BUTTON -->
+<a class="btn" href="contact.php">📞 Contact Admin</a>
 
 </div>
 
+<!-- ===================== -->
 <!-- STATS -->
+<!-- ===================== -->
+
 <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:20px">
 
 <div class="card">
@@ -68,7 +76,10 @@ mysqli_stmt_close($stmt2);
 
 </div>
 
+<!-- ===================== -->
 <!-- RECENT ORDERS -->
+<!-- ===================== -->
+
 <h2 style="margin-top:35px">📦 Recent Orders</h2>
 
 <table class="table">

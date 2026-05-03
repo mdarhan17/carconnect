@@ -1,5 +1,25 @@
 ﻿</main>
 
+<?php
+$role = $_SESSION['role'] ?? '';
+?>
+
+<?php if($role === 'admin'): ?>
+
+<!-- ✅ ADMIN SIMPLE FOOTER -->
+<footer style="
+  text-align:center;
+  padding:15px;
+  color:#666;
+  border-top:1px solid #eee;
+  margin-top:30px;
+">
+  ©️ <?php echo date("Y"); ?> CarConnect. All rights reserved.
+</footer>
+
+<?php else: ?>
+
+<!-- ✅ NORMAL FULL FOOTER -->
 <footer class="footer">
 
   <div class="container footer-grid">
@@ -43,10 +63,12 @@
 
   <!-- BOTTOM BAR -->
   <div class="footer-bottom">
-    © <?php echo date("Y"); ?> CarConnect. All rights reserved.
+    ©️ <?php echo date("Y"); ?> CarConnect. All rights reserved.
   </div>
 
 </footer>
+
+<?php endif; ?>
 
 <script src="/carconnect/assets/js/main.js"></script>
 <script src="/carconnect/assets/js/validation.js"></script>

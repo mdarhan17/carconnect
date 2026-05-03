@@ -31,6 +31,9 @@ $totalSellers = safeCount($conn,"SELECT COUNT(*) c FROM sellers");
 $totalOrders  = safeCount($conn,"SELECT COUNT(*) c FROM orders");
 $totalCategories = safeCount($conn,"SELECT COUNT(*) c FROM car_categories");
 
+/* ✅ NEW CONTACT COUNT */
+$totalContacts = safeCount($conn,"SELECT COUNT(*) c FROM contact_messages");
+
 $salesRes = mysqli_query($conn,"SELECT IFNULL(SUM(total_price),0) s FROM orders");
 $totalSales = $salesRes ? mysqli_fetch_assoc($salesRes)['s'] : 0;
 ?>
@@ -51,13 +54,11 @@ $totalSales = $salesRes ? mysqli_fetch_assoc($salesRes)['s'] : 0;
 
 <a class="btn primary" href="/carconnect/admin/manage_cars.php">🚗 Manage Cars</a>
 
-<a class="btn" href="/carconnect/admin/manage_categories.php">
-🏷️ Categories
-</a>
+<a class="btn" href="/carconnect/admin/manage_categories.php">🏷️ Categories</a>
 
-<a class="btn" href="/carconnect/cars.php">
-🔍 Browse Cars
-</a>
+<a class="btn" href="/carconnect/admin/add_car.php">➕ Add Car</a>
+
+<a class="btn" href="/carconnect/cars.php">🔍 Browse Cars</a>
 
 <a class="btn" href="/carconnect/admin/manage_users.php">👥 Users</a>
 
@@ -67,7 +68,12 @@ $totalSales = $salesRes ? mysqli_fetch_assoc($salesRes)['s'] : 0;
 
 <a class="btn" href="/carconnect/admin/manage_reviews.php">⭐ Reviews</a>
 
-<a class="btn" href="/carconnect/admin/view_messages.php">💬 Messages</a>
+<a class="btn" href="/carconnect/admin/view_messages.php">💬 Chat Messages</a>
+
+<!-- ✅ NEW BUTTON -->
+<a class="btn" href="/carconnect/admin/view_contacts.php">
+📞 Contact Messages
+</a>
 
 <a class="btn" href="/carconnect/admin/view_reports.php">📊 Reports</a>
 
@@ -79,87 +85,33 @@ $totalSales = $salesRes ? mysqli_fetch_assoc($salesRes)['s'] : 0;
 
 <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:20px">
 
-<div class="card">
-<div class="p">
-<div class="muted">Pending Cars</div>
-<div style="font-size:26px;font-weight:900;color:#f59e0b">
-<?php echo $pending; ?>
-</div>
-</div>
-</div>
+<?php
+$cards = [
+["Pending Cars",$pending,"#f59e0b"],
+["Approved Cars",$approved,"#16a34a"],
+["Sold Cars",$sold,"#2563eb"],
+["Total Users",$totalBuyers+$totalSellers,"#fff"],
+["Total Buyers",$totalBuyers,"#06b6d4"],
+["Total Sellers",$totalSellers,"#8b5cf6"],
+["Orders",$totalOrders,"#ef4444"],
+["Revenue","₹".number_format((float)$totalSales),"#06b6d4"],
+["Categories",$totalCategories,"#f97316"],
+["Contact Messages",$totalContacts,"#22c55e"]
+];
 
-<div class="card">
-<div class="p">
-<div class="muted">Approved Cars</div>
-<div style="font-size:26px;font-weight:900;color:#16a34a">
-<?php echo $approved; ?>
+foreach($cards as $c){
+echo "
+<div class='card'>
+<div class='p'>
+<div class='muted'>{$c[0]}</div>
+<div style='font-size:26px;font-weight:900;color:{$c[2]}'>
+{$c[1]}
 </div>
 </div>
 </div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Sold Cars</div>
-<div style="font-size:26px;font-weight:900;color:#2563eb">
-<?php echo $sold; ?>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Total Users</div>
-<div style="font-size:26px;font-weight:900">
-<?php echo $totalBuyers + $totalSellers; ?>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Total Buyers</div>
-<div style="font-size:26px;font-weight:900;color:#06b6d4">
-<?php echo $totalBuyers; ?>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Total Sellers</div>
-<div style="font-size:26px;font-weight:900;color:#8b5cf6">
-<?php echo $totalSellers; ?>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Orders</div>
-<div style="font-size:26px;font-weight:900;color:#ef4444">
-<?php echo $totalOrders; ?>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div class="p">
-<div class="muted">Revenue</div>
-<div style="font-size:26px;font-weight:900;color:#06b6d4">
-₹<?php echo number_format((float)$totalSales); ?>
-</div>
-</div>
-</div>
-
-<!-- ✅ NEW CATEGORY CARD -->
-<div class="card">
-<div class="p">
-<div class="muted">Categories</div>
-<div style="font-size:26px;font-weight:900;color:#f97316">
-<?php echo $totalCategories; ?>
-</div>
-</div>
-</div>
+";
+}
+?>
 
 </div>
 
@@ -236,7 +188,7 @@ echo "<tr>
 <td>#".$o['id']."</td>
 <td>".e($o['make'])." ".e($o['model'])."</td>
 <td>".e($o['buyer'])."</td>
-<td><span style='background:$color;color:#fff;padding:5px 12px;border-radius:20px'>".$o['order_status']."</span></td>
+<td><span style='background:$color;color:#fff;padding:5px 12px;border-radius:20px'>".ucfirst($o['order_status'])."</span></td>
 <td>₹".number_format($o['total_price'])."</td>
 </tr>";
 }

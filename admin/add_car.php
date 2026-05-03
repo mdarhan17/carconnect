@@ -1,28 +1,32 @@
-﻿<?php
+<?php
 require_once __DIR__ . "/../core/middleware.php";
-requireRole("seller");
+requireRole("admin");
 
 require_once __DIR__ . "/../includes/db_connect.php";
 require_once __DIR__ . "/../includes/functions.php";
 require_once __DIR__ . "/../includes/header.php";
 
-$sellerId = (int) $_SESSION['user_id'];
 $err = "";
-$ok = "";
+$ok  = "";
+
+/* ===================== */
+/* HANDLE FORM */
+/* ===================== */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    $sellerId     = (int)($_POST['seller_id'] ?? 0);
     $brand        = ucfirst(strtolower(trim($_POST['brand'] ?? '')));
     $model        = trim($_POST['model'] ?? '');
-    $year         = (int) ($_POST['year'] ?? 0);
-    $price        = (float) ($_POST['price'] ?? 0);
-    $mileage      = (int) ($_POST['mileage'] ?? 0);
+    $year         = (int)($_POST['year'] ?? 0);
+    $price        = (float)($_POST['price'] ?? 0);
+    $mileage      = (int)($_POST['mileage'] ?? 0);
     $fuelType     = trim($_POST['fuel_type'] ?? '');
     $transmission = trim($_POST['transmission'] ?? '');
     $description  = trim($_POST['description'] ?? '');
-    $category_id  = (int) ($_POST['category_id'] ?? 0);
+    $category_id  = (int)($_POST['category_id'] ?? 0);
 
-    if ($brand === "" || $model === "" || $year <= 0 || $price <= 0 || $category_id <= 0) {
+    if ($sellerId <= 0 || $brand === "" || $model === "" || $year <= 0 || $price <= 0 || $category_id <= 0) {
         $err = "Please fill all required fields properly.";
     } else {
 
@@ -69,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($err === "") {
 
-            $status = "pending";
+            $status = "approved"; // 🔥 ADMIN = DIRECT APPROVED
 
             $stmt = mysqli_prepare($conn,"
             INSERT INTO car_listings
@@ -95,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if(mysqli_stmt_execute($stmt)){
-                $ok = "Car added successfully. Waiting for admin approval.";
+                $ok = "Car added successfully (Live ✅)";
             } else {
                 $err = "Database error";
             }
@@ -106,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<h1>🚗 Add Car Listing</h1>
+<h1>🚗 Admin Add Car</h1>
 
 <?php if($err): ?>
 <div class="alert"><?php echo e($err); ?></div>
@@ -118,6 +122,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 <form class="form" method="POST" enctype="multipart/form-data">
+
+<!-- SELLER -->
+<label>Select Seller</label>
+<select class="input" name="seller_id" required>
+<option value="">Choose Seller</option>
+
+<?php
+$res = mysqli_query($conn,"SELECT id,name FROM sellers WHERE status='active'");
+while($s = mysqli_fetch_assoc($res)){
+echo "<option value='".$s['id']."'>".e($s['name'])."</option>";
+}
+?>
+
+</select>
 
 <!-- CATEGORY -->
 <label>Category</label>
@@ -133,16 +151,13 @@ echo "<option value='".$cat['id']."'>".e($cat['name'])."</option>";
 
 </select>
 
-
-<!-- BRAND (PRO LEVEL) -->
+<!-- BRAND -->
 <label>Brand</label>
-
 <input 
   class="input" 
   list="brandList" 
   name="brand" 
   placeholder="Type or select brand"
-  value="<?php echo isset($_POST['brand']) ? e($_POST['brand']) : ''; ?>"
   required
 >
 
@@ -158,22 +173,21 @@ echo "<option value='".$cat['id']."'>".e($cat['name'])."</option>";
   <option value="Audi">
 </datalist>
 
-
 <!-- MODEL -->
 <label>Model</label>
-<input class="input" type="text" name="model" value="<?php echo $_POST['model'] ?? ''; ?>" required>
+<input class="input" type="text" name="model" required>
 
 <!-- YEAR -->
 <label>Manufacturing Year</label>
-<input class="input" type="number" name="year" value="<?php echo $_POST['year'] ?? ''; ?>" required>
+<input class="input" type="number" name="year" required>
 
 <!-- PRICE -->
 <label>Price (₹)</label>
-<input class="input" type="number" step="0.01" name="price" value="<?php echo $_POST['price'] ?? ''; ?>" required>
+<input class="input" type="number" step="0.01" name="price" required>
 
 <!-- MILEAGE -->
 <label>Mileage (km)</label>
-<input class="input" type="number" name="mileage" value="<?php echo $_POST['mileage'] ?? ''; ?>">
+<input class="input" type="number" name="mileage">
 
 <!-- FUEL -->
 <label>Fuel Type</label>
@@ -193,13 +207,13 @@ echo "<option value='".$cat['id']."'>".e($cat['name'])."</option>";
 
 <!-- DESCRIPTION -->
 <label>Description</label>
-<textarea class="input" name="description" rows="4"><?php echo $_POST['description'] ?? ''; ?></textarea>
+<textarea class="input" name="description" rows="4"></textarea>
 
 <!-- IMAGE -->
 <label>Car Image</label>
 <input class="input" type="file" name="image">
 
-<button class="btn primary" style="margin-top:15px">
+<button class="btn primary mt-10">
 🚀 Add Car
 </button>
 
