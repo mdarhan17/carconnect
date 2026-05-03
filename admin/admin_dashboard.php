@@ -68,8 +68,6 @@ $totalSales = $salesRes ? mysqli_fetch_assoc($salesRes)['s'] : 0;
 
 <a class="btn" href="/carconnect/admin/manage_reviews.php">⭐ Reviews</a>
 
-<a class="btn" href="/carconnect/admin/view_messages.php">💬 Chat Messages</a>
-
 <!-- ✅ NEW BUTTON -->
 <a class="btn" href="/carconnect/admin/view_contacts.php">
 📞 Contact Messages
